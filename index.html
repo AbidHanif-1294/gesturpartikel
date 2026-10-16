@@ -1,18 +1,434 @@
-<!-- index.html -->
-<script type="module">
-  import { HandLandmarker, FilesetResolver } from 
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gesture Interactive</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a14;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #fff;
+  }
+
+  #particleCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    z-index: 1;
+  }
+
+  #webcam {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    width: 220px;
+    height: auto;
+    border-radius: 12px;
+    transform: scaleX(-1);
+    opacity: 0.75;
+    z-index: 10;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: #000;
+  }
+
+  #controlPanel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 16px;
+    min-width: 200px;
+    z-index: 20;
+    user-select: none;
+  }
+
+  #controlPanel h3 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 10px;
+  }
+
+  #colorButtons button {
+    display: block;
+    width: 100%;
+    margin: 6px 0;
+    padding: 8px 14px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  #colorButtons button:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateX(2px);
+  }
+
+  #colorButtons button.active {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.5);
+  }
+
+  #cameraToggle {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    background: rgba(80, 200, 120, 0.15);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  #cameraToggle.off {
+    background: rgba(220, 80, 80, 0.15);
+  }
+
+  #status {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    font-size: 12px;
+    opacity: 0.85;
+    z-index: 20;
+    max-width: 320px;
+  }
+
+  #hint {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    font-size: 12px;
+    opacity: 0.7;
+    z-index: 20;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+  <canvas id="particleCanvas"></canvas>
+  <video id="webcam" autoplay playsinline muted></video>
+
+  <div id="controlPanel">
+    <h3>Kontrol</h3>
+    <div id="colorButtons"></div>
+    <button id="cameraToggle">Kamera: ON</button>
+  </div>
+
+  <div id="hint">
+    ✋ Buka/tutup tangan → ukuran partikel<br />
+    ↔ Lebar jari → sebaran partikel<br />
+    👌 Pinch → ganti warna<br />
+    ⌨ Tekan 1–5 untuk preset warna
+  </div>
+
+  <div id="status">Memuat MediaPipe…</div>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+// ============ Setup dasar ============
+const canvas = document.getElementById("particleCanvas");
+const ctx = canvas.getContext("2d");
+const video = document.getElementById("webcam");
+const statusEl = document.getElementById("status");
+const cameraToggle = document.getElementById("cameraToggle");
+const colorButtons = document.getElementById("colorButtons");
+
+let W = 0, H = 0;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+// ============ Particle system ============
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.vx = (Math.random() - 0.5) * 0.6;
+    this.vy = (Math.random() - 0.5) * 0.6;
+    this.baseSize = Math.random() * 2 + 1;
+    this.hueOffset = Math.random() * 40 - 20;
+  }
+  update(openness, dispersion, targetX, targetY, hue) {
+    const spread = 60 + dispersion * 320;
+
+    if (targetX !== null && targetY !== null) {
+      const dx = this.x - targetX;
+      const dy = this.y - targetY;
+      const d = Math.hypot(dx, dy) + 0.001;
+      const force = Math.max(0, 1 - d / spread) * (openness * 6 + 1);
+      this.vx += (dx / d) * force * 0.4;
+      this.vy += (dy / d) * force * 0.4;
+    }
+
+    this.vx *= 0.94;
+    this.vy *= 0.94;
+    this.x += this.vx;
+    this.y += this.vy;
+
+    if (this.x < -20) this.x = W + 20;
+    if (this.x > W + 20) this.x = -20;
+    if (this.y < -20) this.y = H + 20;
+    if (this.y > H + 20) this.y = -20;
+
+    const size = this.baseSize * (0.4 + openness * 2.6);
+    this.color = `hsl(${(hue + this.hueOffset + 360) % 360}, 75%, 62%)`;
+    return size;
+  }
+  draw(ctx, size) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+  }
+}
+
+const PARTICLE_COUNT = 400;
+const particles = Array.from({ length: PARTICLE_COUNT }, () => new Particle());
+
+// ============ State ============
+let currentOpenness = 0.5;
+let currentDispersion = 0.5;
+let handCenter = { x: null, y: null };
+let currentHue = 200;
+let cameraOn = true;
+let lastPinchActive = false;
+
+// ============ Helper ============
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
+
+function getHandOpenness(lm) {
+  const wrist = lm[0];
+  const palmBase = lm[9];
+  const palmSize = dist(wrist, palmBase) + 0.0001;
+  const fingertips = [4, 8, 12, 16, 20];
+  const avg = fingertips.reduce((s, i) => s + dist(wrist, lm[i]), 0) / fingertips.length;
+  return clamp(avg / (palmSize * 2.5), 0, 1);
+}
+
+function getPinchDistance(lm) {
+  return dist(lm[4], lm[8]);
+}
+
+// ============ Warna preset ============
+const colorPresets = [
+  { name: "1 · Neon",    hue: 200 },
+  { name: "2 · Sunset",  hue: 20  },
+  { name: "3 · Forest",  hue: 140 },
+  { name: "4 · Berry",   hue: 320 },
+  { name: "5 · Mono",    hue: 0   },
+];
+
+function buildColorButtons() {
+  colorPresets.forEach((p, i) => {
+    const btn = document.createElement("button");
+    btn.textContent = p.name;
+    btn.dataset.index = i;
+    btn.addEventListener("click", () => setHue(p.hue, i));
+    colorButtons.appendChild(btn);
+  });
+  setHue(colorPresets[0].hue, 0);
+}
+
+function setHue(hue, index) {
+  currentHue = hue;
+  [...colorButtons.children].forEach((b, i) =>
+    b.classList.toggle("active", i === index)
+  );
+}
+
+buildColorButtons();
+
+document.addEventListener("keydown", (e) => {
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= 5) setHue(colorPresets[n - 1].hue, n - 1);
+});
+
+// ============ Kamera toggle ============
+cameraToggle.addEventListener("click", () => {
+  cameraOn = !cameraOn;
+  cameraToggle.textContent = cameraOn ? "Kamera: ON" : "Kamera: OFF";
+  cameraToggle.classList.toggle("off", !cameraOn);
+  if (cameraOn) {
+    video.play().catch(() => {});
+    statusEl.textContent = "Kamera aktif";
+  } else {
+    video.pause();
+    handCenter.x = null;
+    handCenter.y = null;
+    statusEl.textContent = "Kamera nonaktif — gunakan panel atau keys 1–5";
+  }
+});
+
+// ============ Setup MediaPipe ============
+let handLandmarker = null;
+
+async function initMediaPipe() {
+  statusEl.textContent = "Memuat model MediaPipe…";
   const vision = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
   );
-
-  const handLandmarker = await HandLandmarker.createFromOptions(vision, {
+  handLandmarker = await HandLandmarker.createFromOptions(vision, {
     baseOptions: {
-      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-      delegate: "GPU"
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+      delegate: "GPU",
     },
     runningMode: "VIDEO",
-    numHands: 2
+    numHands: 1,
   });
+}
+
+async function initCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480 },
+      audio: false,
+    });
+    video.srcObject = stream;
+    await video.play();
+    statusEl.textContent = "Kamera aktif — tunjukkan tangan Anda ✋";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent =
+      "Kamera tidak tersedia — gunakan panel atau keys 1–5";
+    cameraOn = false;
+    cameraToggle.textContent = "Kamera: OFF";
+    cameraToggle.classList.add("off");
+  }
+}
+
+// ============ Deteksi loop ============
+let lastVideoTime = -1;
+
+function processHands(landmarksList) {
+  const hand = landmarksList[0];
+  const wrist = hand[0];
+
+  // Mirror horizontal (karena webcam menghadap pengguna)
+  const targetX = (1 - wrist.x) * W;
+  const targetY = wrist.y * H;
+
+  // Smoothing
+  handCenter.x = handCenter.x === null
+    ? targetX
+    : handCenter.x * 0.6 + targetX * 0.4;
+  handCenter.y = handCenter.y === null
+    ? targetY
+    : handCenter.y * 0.6 + targetY * 0.4;
+
+  const openness = getHandOpenness(hand);
+  currentOpenness = currentOpenness * 0.75 + openness * 0.25;
+
+  const spread = dist(hand[4], hand[20]);
+  const dispersion = clamp(spread * 2, 0, 1);
+  currentDispersion = currentDispersion * 0.75 + dispersion * 0.25;
+
+  // Pinch → ganti warna
+  const pinch = getPinchDistance(hand) < 0.06;
+  if (pinch && !lastPinchActive) {
+    const nextIndex = (colorPresets.findIndex((p) => p.hue === currentHue) + 1)
+      % colorPresets.length;
+    setHue(colorPresets[nextIndex].hue, nextIndex);
+  }
+  lastPinchActive = pinch;
+}
+
+function detectLoop() {
+  if (handLandmarker && video.readyState >= 2 && cameraOn) {
+    const now = performance.now();
+    if (video.currentTime !== lastVideoTime) {
+      lastVideoTime = video.currentTime;
+      const results = handLandmarker.detectForVideo(video, now);
+      if (results.landmarks && results.landmarks.length > 0) {
+        processHands(results.landmarks);
+      } else {
+        // Tidak ada tangan → partikel kembali mengumpul perlahan
+        currentOpenness += (0.5 - currentOpenness) * 0.02;
+        currentDispersion += (0.3 - currentDispersion) * 0.02;
+        handCenter.x = null;
+        handCenter.y = null;
+      }
+    }
+  }
+  requestAnimationFrame(detectLoop);
+}
+
+// ============ Render loop ============
+function renderLoop() {
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "rgba(10, 10, 20, 0.18)";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of particles) {
+    const size = p.update(
+      currentOpenness,
+      currentDispersion,
+      handCenter.x,
+      handCenter.y,
+      currentHue
+    );
+    p.draw(ctx, size);
+  }
+
+  requestAnimationFrame(renderLoop);
+}
+
+// ============ Start ============
+(async function start() {
+  renderLoop();
+  try {
+    await initMediaPipe();
+    await initCamera();
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = "Gagal memuat model — cek koneksi internet";
+  }
+  detectLoop();
+})();
 </script>
+</body>
+</html>
