@@ -3,141 +3,77 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Gesture Interactive</title>
+<title>Gesture Universe 3D</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #0a0a14;
-    font-family: system-ui, -apple-system, sans-serif;
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: system-ui, sans-serif;
     color: #fff;
   }
-
   #particleCanvas {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    display: block;
-    z-index: 1;
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    display: block; z-index: 1;
   }
-
   #webcam {
-    position: fixed;
-    bottom: 16px;
-    right: 16px;
-    width: 220px;
-    height: auto;
-    border-radius: 12px;
-    transform: scaleX(-1);
-    opacity: 0.75;
+    position: fixed; bottom: 16px; right: 16px;
+    width: 200px; border-radius: 12px;
+    transform: scaleX(-1); opacity: 0.7;
     z-index: 10;
     border: 1px solid rgba(255,255,255,0.15);
     background: #000;
   }
-
   #controlPanel {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.12);
+    position: fixed; top: 16px; left: 16px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 16px;
-    padding: 16px;
-    min-width: 200px;
-    z-index: 20;
-    user-select: none;
+    padding: 16px 18px; min-width: 220px;
+    z-index: 20; user-select: none;
   }
-
   #controlPanel h3 {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    opacity: 0.7;
-    margin-bottom: 10px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    opacity: 0.5; margin-bottom: 12px;
   }
-
-  #colorButtons button {
-    display: block;
-    width: 100%;
-    margin: 6px 0;
-    padding: 8px 14px;
-    border: 1px solid rgba(255,255,255,0.2);
+  #status {
+    font-size: 13px; margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  #stateName {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 6px;
+    background: rgba(100, 180, 255, 0.18);
+    color: #9cf; font-weight: 600; font-size: 12px;
+    transition: all 0.3s;
+  }
+  .gesture-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; margin: 2px 0;
+    font-size: 12px; opacity: 0.5;
     border-radius: 8px;
-    background: rgba(255,255,255,0.05);
-    color: #fff;
-    font-size: 13px;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.25s ease;
   }
-
-  #colorButtons button:hover {
-    background: rgba(255,255,255,0.15);
-    transform: translateX(2px);
+  .gesture-item.active {
+    opacity: 1;
+    background: rgba(100, 180, 255, 0.12);
+    color: #bde; transform: translateX(3px);
   }
-
-  #colorButtons button.active {
-    background: rgba(255,255,255,0.25);
-    border-color: rgba(255,255,255,0.5);
-  }
-
+  .gesture-item .icon { width: 22px; text-align: center; font-size: 14px; }
   #cameraToggle {
-    display: block;
-    width: 100%;
-    margin-top: 12px;
-    padding: 10px;
+    display: block; width: 100%;
+    margin-top: 12px; padding: 9px;
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 8px;
     background: rgba(80, 200, 120, 0.15);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    color: #fff; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
   }
-
-  #cameraToggle.off {
-    background: rgba(220, 80, 80, 0.15);
-  }
-
-  #status {
-    position: fixed;
-    bottom: 16px;
-    left: 16px;
-    padding: 8px 14px;
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    font-size: 12px;
-    opacity: 0.85;
-    z-index: 20;
-    max-width: 320px;
-  }
-
-  #hint {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    padding: 8px 14px;
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    font-size: 12px;
-    opacity: 0.7;
-    z-index: 20;
-    line-height: 1.5;
-  }
+  #cameraToggle.off { background: rgba(220, 80, 80, 0.15); }
 </style>
 </head>
 <body>
@@ -145,31 +81,29 @@
   <video id="webcam" autoplay playsinline muted></video>
 
   <div id="controlPanel">
-    <h3>Kontrol</h3>
-    <div id="colorButtons"></div>
+    <h3>Gesture Universe 3D</h3>
+    <div id="status">State: <span id="stateName">Scatter</span></div>
+    <div class="gesture-item" data-state="blackhole"><span class="icon">✊</span> Black Hole (3D)</div>
+    <div class="gesture-item" data-state="sun"><span class="icon">☝️</span> Matahari (3D)</div>
+    <div class="gesture-item" data-state="saturn"><span class="icon">✌️</span> Saturnus (3D)</div>
+    <div class="gesture-item" data-state="whitehole"><span class="icon">🤟</span> White Hole (3D)</div>
+    <div class="gesture-item" data-state="scatter"><span class="icon">🖐</span> Scatter</div>
     <button id="cameraToggle">Kamera: ON</button>
   </div>
-
-  <div id="hint">
-    ✋ Buka/tutup tangan → ukuran partikel<br />
-    ↔ Lebar jari → sebaran partikel<br />
-    👌 Pinch → ganti warna<br />
-    ⌨ Tekan 1–5 untuk preset warna
-  </div>
-
-  <div id="status">Memuat MediaPipe…</div>
 
 <script type="module">
 import { HandLandmarker, FilesetResolver } from
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
 
-// ============ Setup dasar ============
+// ============================================================
+// CANVAS
+// ============================================================
 const canvas = document.getElementById("particleCanvas");
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d", { alpha: false });
 const video = document.getElementById("webcam");
-const statusEl = document.getElementById("status");
+const stateNameEl = document.getElementById("stateName");
 const cameraToggle = document.getElementById("cameraToggle");
-const colorButtons = document.getElementById("colorButtons");
+const gestureItems = document.querySelectorAll(".gesture-item");
 
 let W = 0, H = 0;
 function resize() {
@@ -179,134 +113,480 @@ function resize() {
 resize();
 window.addEventListener("resize", resize);
 
-// ============ Particle system ============
-class Particle {
-  constructor() { this.reset(); }
-  reset() {
-    this.x = Math.random() * W;
-    this.y = Math.random() * H;
-    this.vx = (Math.random() - 0.5) * 0.6;
-    this.vy = (Math.random() - 0.5) * 0.6;
-    this.baseSize = Math.random() * 2 + 1;
-    this.hueOffset = Math.random() * 40 - 20;
-  }
-  update(openness, dispersion, targetX, targetY, hue) {
-    const spread = 60 + dispersion * 320;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-    if (targetX !== null && targetY !== null) {
-      const dx = this.x - targetX;
-      const dy = this.y - targetY;
-      const d = Math.hypot(dx, dy) + 0.001;
-      const force = Math.max(0, 1 - d / spread) * (openness * 6 + 1);
-      this.vx += (dx / d) * force * 0.4;
-      this.vy += (dy / d) * force * 0.4;
+// ============================================================
+// PARAMETER GLOBAL
+// ============================================================
+const PARTICLE_COUNT = 7000;
+const SIZE_MULT      = 10.0;
+const MIN_HALO       = 4;
+const GLOW_STRENGTH  = 1.0;
+
+// ============================================================
+// SPRITE — inti putih + halo bertint
+// ============================================================
+const HUE_BUCKETS = 36;
+const SPRITE_SIZE = 32;
+const spriteCache = new Map();
+
+function buildSprite(hue) {
+  const c = document.createElement("canvas");
+  c.width = c.height = SPRITE_SIZE;
+  const g = c.getContext("2d");
+  const r = SPRITE_SIZE / 2;
+  const grd = g.createRadialGradient(r, r, 0, r, r, r);
+
+  grd.addColorStop(0.00, `hsla(${hue}, 40%, 100%, 1.00)`);
+  grd.addColorStop(0.10, `hsla(${hue}, 50%, 96%, 1.00)`);
+  grd.addColorStop(0.18, `hsla(${hue}, 65%, 88%, 0.75)`);
+  grd.addColorStop(0.30, `hsla(${hue}, 78%, 70%, 0.35)`);
+  grd.addColorStop(0.50, `hsla(${hue}, 85%, 55%, 0.12)`);
+  grd.addColorStop(0.75, `hsla(${hue}, 88%, 48%, 0.03)`);
+  grd.addColorStop(1.00, `hsla(${hue}, 90%, 45%, 0.00)`);
+
+  g.fillStyle = grd;
+  g.fillRect(0, 0, SPRITE_SIZE, SPRITE_SIZE);
+  return c;
+}
+
+for (let i = 0; i < HUE_BUCKETS; i++) {
+  spriteCache.set(i, buildSprite(i * (360 / HUE_BUCKETS)));
+}
+
+function getSprite(hue) {
+  const idx = ((Math.round(hue / (360 / HUE_BUCKETS)) % HUE_BUCKETS) + HUE_BUCKETS) % HUE_BUCKETS;
+  return spriteCache.get(idx);
+}
+
+// ============================================================
+// PARTICLE
+// ============================================================
+class Particle {
+  constructor() {
+    this.x = Math.random() * window.innerWidth;
+    this.y = Math.random() * window.innerHeight;
+    this.vx = 0; this.vy = 0;
+
+    this.sizeBase = 0.7 + Math.random() * 0.6;
+
+    this.hueOffset = (Math.random() - 0.5) * 18;
+    this.angle = Math.random() * Math.PI * 2;
+    this.polar = Math.acos(2 * Math.random() - 1);
+
+    this.radiusRatio = Math.pow(Math.random(), 1.6);
+
+    this.zOffset = (Math.random() - 0.5);
+    this.zJitter = (Math.random() - 0.5);
+    this.angularSpeed = 0.75 + Math.random() * 0.5;
+    this.spiralRate = 0.6 + Math.random() * 0.7;
+    this.phaseOffset = Math.random() * Math.PI * 2;
+
+    this.drawHue = 200;
+    this.drawSize = 1;
+    this.drawAlpha = 1;
+  }
+}
+
+const particles = [];
+for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+
+// ============================================================
+// STATE
+// ============================================================
+const STATE = {
+  BLACKHOLE: "blackhole",
+  SCATTER:   "scatter",
+  SUN:       "sun",
+  SATURN:    "saturn",
+  WHITEHOLE: "whitehole"
+};
+
+const STATE_LABEL = {
+  blackhole: "Black Hole",
+  scatter:   "Scatter",
+  sun:       "Matahari",
+  saturn:    "Saturnus",
+  whitehole: "White Hole"
+};
+
+let currentState = STATE.SCATTER;
+let pendingState = STATE.SCATTER;
+let pendingSince = 0;
+const STATE_HYSTERESIS = 200;
+
+// Tilt
+const TILT_BH = -1.25;
+const COS_BH = Math.cos(TILT_BH);
+const SIN_BH = Math.sin(TILT_BH);
+const TILT_SAT = -1.10;
+const COS_SAT = Math.cos(TILT_SAT);
+const SIN_SAT = Math.sin(TILT_SAT);
+const TILT_SUN = 0.18;
+const COS_SUN = Math.cos(TILT_SUN);
+const SIN_SUN = Math.sin(TILT_SUN);
+
+// ============================================================
+// UPDATER
+// ============================================================
+function updateParticle(p, state, t, cx, cy) {
+  let hue = 205, sizeMult = 1.0, alpha = 1.0;
+  let k = 0.15, damp = 0.5;
+  let tx = p.x, ty = p.y;
+
+  switch (state) {
+
+    // ==========================================================
+    // BLACK HOLE — partikel mengalir MASUK ke pusat
+    // ==========================================================
+    case STATE.BLACKHOLE: {
+      const innerR = 55;
+      const outerR = Math.max(W, H) * 0.85;
+
+      p.radiusRatio -= p.spiralRate * 0.0009 * (0.30 + p.radiusRatio * 0.70);
+      if (p.radiusRatio <= 0) {
+        p.radiusRatio = 1 + Math.random() * 0.08;
+        p.angle = Math.random() * Math.PI * 2;
+      }
+
+      const r = innerR + p.radiusRatio * (outerR - innerR);
+      const angSpeed = 0.014 * (1 + 380 / (r + 55));
+      p.angle += angSpeed * p.angularSpeed;
+
+      const thick = 4 + p.radiusRatio * 14;
+      const zJ = p.zJitter * thick;
+
+      const x3 = Math.cos(p.angle) * r;
+      const y3 = Math.sin(p.angle) * r;
+      const z3 = p.zOffset * thick + zJ;
+
+      const y2 = y3 * COS_BH - z3 * SIN_BH;
+      const z2 = y3 * SIN_BH + z3 * COS_BH;
+
+      const posScale = 1 - z2 * 0.0006;
+      tx = cx + x3 * posScale;
+      ty = cy + y2 * posScale;
+
+      const depth = clamp(0.75 - z2 * 0.0007, 0.55, 1.0);
+      const intensity = Math.pow(1 - p.radiusRatio, 1.6);
+
+      hue = 208 + p.hueOffset * 0.5;
+      alpha = (0.15 + intensity * 0.85) * depth;
+      sizeMult = 0.55 + intensity * 0.85;
+      break;
     }
 
-    this.vx *= 0.94;
-    this.vy *= 0.94;
-    this.x += this.vx;
-    this.y += this.vy;
+    // ==========================================================
+    // SCATTER
+    // ==========================================================
+    case STATE.SCATTER: {
+      p.vx += (Math.random() - 0.5) * 0.55;
+      p.vy += (Math.random() - 0.5) * 0.55;
 
-    if (this.x < -20) this.x = W + 20;
-    if (this.x > W + 20) this.x = -20;
-    if (this.y < -20) this.y = H + 20;
-    if (this.y > H + 20) this.y = -20;
+      const dx = cx - p.x, dy = cy - p.y;
+      const d = Math.hypot(dx, dy) + 0.001;
+      const maxR = Math.min(W, H) * 0.6;
+      if (d > maxR) {
+        p.vx += (dx / d) * 0.2;
+        p.vy += (dy / d) * 0.2;
+      }
 
-    const size = this.baseSize * (0.4 + openness * 2.6);
-    this.color = `hsl(${(hue + this.hueOffset + 360) % 360}, 75%, 62%)`;
-    return size;
+      p.vx *= 0.985;
+      p.vy *= 0.985;
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.x < -40) p.x = W + 40;
+      if (p.x > W + 40) p.x = -40;
+      if (p.y < -40) p.y = H + 40;
+      if (p.y > H + 40) p.y = -40;
+
+      p.drawHue = 208 + p.hueOffset * 1.6;
+      p.drawSize = p.sizeBase * SIZE_MULT;
+      p.drawAlpha = 0.65;
+      return;
+    }
+
+    // ==========================================================
+    // SUN
+    // ==========================================================
+    case STATE.SUN: {
+      const isCorona = p.radiusRatio > 0.55;
+
+      if (!isCorona) {
+        const rr = p.radiusRatio / 0.55;
+        const R = 72 * Math.pow(rr, 0.5);
+
+        const theta = p.angle + t * 0.0004;
+        const phi = p.polar;
+
+        const x3 = Math.sin(phi) * Math.cos(theta) * R;
+        const z3 = Math.sin(phi) * Math.sin(theta) * R;
+        const y3 = Math.cos(phi) * R;
+
+        const y2 = y3 * COS_SUN - z3 * SIN_SUN;
+        const z2 = y3 * SIN_SUN + z3 * COS_SUN;
+        const posScale = 1 - z2 * 0.0010;
+
+        tx = cx + x3 * posScale;
+        ty = cy + y2 * posScale;
+
+        hue = 40 + p.hueOffset * 0.6;
+        alpha = 0.85;
+        sizeMult = 1.05 + (1 - rr) * 0.25;
+      } else {
+        const rr = (p.radiusRatio - 0.55) / 0.45;
+        const wobble = 1 + Math.sin(t * 0.002 + p.phaseOffset) * 0.15;
+        const R = (80 + rr * 220) * wobble;
+
+        const theta = p.angle + t * 0.0002;
+        const phi = p.polar;
+
+        const x3 = Math.sin(phi) * Math.cos(theta) * R;
+        const z3 = Math.sin(phi) * Math.sin(theta) * R;
+        const y3 = Math.cos(phi) * R;
+
+        const y2 = y3 * COS_SUN - z3 * SIN_SUN;
+        const z2 = y3 * SIN_SUN + z3 * COS_SUN;
+        const posScale = 1 - z2 * 0.0008;
+
+        tx = cx + x3 * posScale;
+        ty = cy + y2 * posScale;
+
+        hue = 32 + p.hueOffset;
+        alpha = 0.35 + (1 - rr) * 0.35;
+        sizeMult = 0.75;
+      }
+      break;
+    }
+
+    // ==========================================================
+    // SATURN
+    // ==========================================================
+    case STATE.SATURN: {
+      const isRing = p.radiusRatio > 0.35;
+
+      if (!isRing) {
+        const rr = p.radiusRatio / 0.35;
+        const R = 55 * Math.pow(rr, 0.5);
+
+        const theta = p.angle + t * 0.0003;
+        const phi = p.polar;
+
+        const x3 = Math.sin(phi) * Math.cos(theta) * R;
+        const z3 = Math.sin(phi) * Math.sin(theta) * R;
+        const y3 = Math.cos(phi) * R;
+
+        const y2 = y3 * COS_SAT - z3 * SIN_SAT;
+        const z2 = y3 * SIN_SAT + z3 * COS_SAT;
+        const posScale = 1 - z2 * 0.0010;
+
+        tx = cx + x3 * posScale;
+        ty = cy + y2 * posScale;
+
+        hue = 40 + p.hueOffset * 0.5;
+        alpha = 0.9;
+        sizeMult = 1.00 + (1 - rr) * 0.20;
+      } else {
+        const rr = (p.radiusRatio - 0.35) / 0.65;
+        const ringInner = 82;
+        const ringOuter = 235;
+
+        const inGap = Math.abs(rr - 0.42) < 0.045;
+
+        const r = ringInner + rr * (ringOuter - ringInner);
+        p.angle += 0.012 * (1 + 200 / (r + 80)) * p.angularSpeed;
+
+        const zJ = p.zJitter * 2;
+        const x3 = Math.cos(p.angle) * r;
+        const y3 = Math.sin(p.angle) * r;
+        const z3 = p.zOffset * 3 + zJ;
+
+        const y2 = y3 * COS_SAT - z3 * SIN_SAT;
+        const z2 = y3 * SIN_SAT + z3 * COS_SAT;
+        const posScale = 1 - z2 * 0.0006;
+
+        tx = cx + x3 * posScale;
+        ty = cy + y2 * posScale;
+
+        hue = 34 + p.hueOffset;
+        alpha = inGap ? 0.20 : 0.70;
+        sizeMult = inGap ? 0.60 : 0.90;
+      }
+      break;
+    }
+
+    // ==========================================================
+    // WHITE HOLE — partikel DIPANCARKAN keluar dari pusat
+    // Kebalikan black hole: sumber di tengah, memancar ke tepi
+    // ==========================================================
+    case STATE.WHITEHOLE: {
+      const innerR = 30;
+      const outerR = Math.max(W, H) * 0.85;
+
+      // Burst periodik — setiap ~2.2s partikel memancar lebih cepat
+      const burstPhase = (t % 2200) / 2200;
+      const burstPower = burstPhase < 0.18
+        ? 3.2 - burstPhase * 8   // awal burst kuat, cepat meluruh
+        : 0.85;
+
+      // Throb halus per partikel
+      const throb = 1 + Math.sin(t * 0.004 + p.phaseOffset * 0.5) * 0.20;
+
+      // ⚡ SPIRAL OUTWARD — radiusRatio BERTAMBAH (kebalikan black hole)
+      p.radiusRatio += p.spiralRate * 0.0016 * burstPower * throb *
+                       (0.25 + p.radiusRatio * 0.75);
+
+      // Respawn di pusat setelah mencapai tepi
+      if (p.radiusRatio >= 1) {
+        p.radiusRatio = Math.random() * 0.03;
+        p.angle = Math.random() * Math.PI * 2;
+        p.zOffset = (Math.random() - 0.5);
+        p.zJitter = (Math.random() - 0.5);
+      }
+
+      const r = innerR + p.radiusRatio * (outerR - innerR);
+
+      // Rotasi LEBIH CEPAT di luar (aliran keluar makin cepat di tepi)
+      // Kebalikan Kepler — bukan spiral masuk
+      const angSpeed = 0.010 * (0.5 + p.radiusRatio * 1.8);
+      p.angle += angSpeed * p.angularSpeed;
+
+      // Disc mengembang ke luar (lebih tipis saat keluar)
+      const thick = 2 + p.radiusRatio * 10;
+      const zJ = p.zJitter * thick;
+
+      const x3 = Math.cos(p.angle) * r;
+      const y3 = Math.sin(p.angle) * r;
+      const z3 = p.zOffset * thick + zJ;
+
+      const y2 = y3 * COS_BH - z3 * SIN_BH;
+      const z2 = y3 * SIN_BH + z3 * COS_BH;
+
+      const posScale = 1 - z2 * 0.0006;
+      tx = cx + x3 * posScale;
+      ty = cy + y2 * posScale;
+
+      const depth = clamp(0.75 - z2 * 0.0007, 0.55, 1.0);
+
+      // ✨ Intensitas: PALING TERANG DI PUSAT (sumber pancaran)
+      const intensity = Math.pow(1 - p.radiusRatio, 1.3);
+
+      // Warna: pusat = putih-biru terang, tepi = cyan
+      hue = 200 - p.radiusRatio * 25 + p.hueOffset * 1.2;
+
+      // Alpha & ukuran: dominan terang di pusat
+      alpha = (0.06 + intensity * 1.05) * depth;
+      sizeMult = 0.40 + intensity * 1.15;
+
+      // Percikan ekstra saat burst
+      if (burstPower > 2) {
+        alpha *= 1.15;
+        sizeMult *= 1.10;
+      }
+      break;
+    }
   }
-  draw(ctx, size) {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-  }
+
+  // Spring ke target
+  p.vx += (tx - p.x) * k;
+  p.vy += (ty - p.y) * k;
+  p.vx *= damp;
+  p.vy *= damp;
+  p.x += p.vx;
+  p.y += p.vy;
+
+  p.drawHue = hue;
+  p.drawSize = p.sizeBase * sizeMult * SIZE_MULT;
+  p.drawAlpha = alpha;
 }
 
-const PARTICLE_COUNT = 400;
-const particles = Array.from({ length: PARTICLE_COUNT }, () => new Particle());
+// ============================================================
+// RENDER LOOP
+// ============================================================
+function renderLoop(t) {
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#000205";
+  ctx.fillRect(0, 0, W, H);
 
-// ============ State ============
-let currentOpenness = 0.5;
-let currentDispersion = 0.5;
-let handCenter = { x: null, y: null };
-let currentHue = 200;
-let cameraOn = true;
-let lastPinchActive = false;
+  ctx.globalCompositeOperation = "lighter";
 
-// ============ Helper ============
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const cx = W / 2;
+  const cy = H / 2;
+
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    updateParticle(p, currentState, t, cx, cy);
+
+    const sprite = getSprite(p.drawHue);
+    const drawSize = Math.max(MIN_HALO, p.drawSize * 1.0);
+    const half = drawSize / 2;
+
+    ctx.globalAlpha = clamp(p.drawAlpha * GLOW_STRENGTH, 0, 1);
+    ctx.drawImage(sprite, p.x - half, p.y - half, drawSize, drawSize);
+  }
+
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(renderLoop);
+}
+
+// ============================================================
+// GESTURE DETECTION
+// ============================================================
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
 
-function getHandOpenness(lm) {
+function countExtendedFingers(lm) {
   const wrist = lm[0];
-  const palmBase = lm[9];
-  const palmSize = dist(wrist, palmBase) + 0.0001;
-  const fingertips = [4, 8, 12, 16, 20];
-  const avg = fingertips.reduce((s, i) => s + dist(wrist, lm[i]), 0) / fingertips.length;
-  return clamp(avg / (palmSize * 2.5), 0, 1);
+  const fingers = [
+    { tip: 8,  pip: 6  },
+    { tip: 12, pip: 10 },
+    { tip: 16, pip: 14 },
+    { tip: 20, pip: 18 }
+  ];
+  let count = 0;
+  for (const f of fingers) {
+    if (dist(lm[f.tip], wrist) > dist(lm[f.pip], wrist) * 1.15) count++;
+  }
+  return count;
 }
 
-function getPinchDistance(lm) {
-  return dist(lm[4], lm[8]);
+function detectGesture(lm) {
+  const n = countExtendedFingers(lm);
+  if (n === 0) return STATE.BLACKHOLE;
+  if (n === 1) return STATE.SUN;
+  if (n === 2) return STATE.SATURN;
+  if (n === 3) return STATE.WHITEHOLE;
+  return STATE.SCATTER;
 }
 
-// ============ Warna preset ============
-const colorPresets = [
-  { name: "1 · Neon",    hue: 200 },
-  { name: "2 · Sunset",  hue: 20  },
-  { name: "3 · Forest",  hue: 140 },
-  { name: "4 · Berry",   hue: 320 },
-  { name: "5 · Mono",    hue: 0   },
-];
-
-function buildColorButtons() {
-  colorPresets.forEach((p, i) => {
-    const btn = document.createElement("button");
-    btn.textContent = p.name;
-    btn.dataset.index = i;
-    btn.addEventListener("click", () => setHue(p.hue, i));
-    colorButtons.appendChild(btn);
-  });
-  setHue(colorPresets[0].hue, 0);
-}
-
-function setHue(hue, index) {
-  currentHue = hue;
-  [...colorButtons.children].forEach((b, i) =>
-    b.classList.toggle("active", i === index)
+function setState(newState) {
+  if (newState === currentState) return;
+  currentState = newState;
+  stateNameEl.textContent = STATE_LABEL[newState] || newState;
+  gestureItems.forEach(item =>
+    item.classList.toggle("active", item.dataset.state === newState)
   );
 }
 
-buildColorButtons();
-
-document.addEventListener("keydown", (e) => {
-  const n = parseInt(e.key, 10);
-  if (n >= 1 && n <= 5) setHue(colorPresets[n - 1].hue, n - 1);
-});
-
-// ============ Kamera toggle ============
-cameraToggle.addEventListener("click", () => {
-  cameraOn = !cameraOn;
-  cameraToggle.textContent = cameraOn ? "Kamera: ON" : "Kamera: OFF";
-  cameraToggle.classList.toggle("off", !cameraOn);
-  if (cameraOn) {
-    video.play().catch(() => {});
-    statusEl.textContent = "Kamera aktif";
+function requestStateChange(newState) {
+  if (newState === pendingState) {
+    if (newState !== currentState &&
+        performance.now() - pendingSince > STATE_HYSTERESIS) {
+      setState(newState);
+    }
   } else {
-    video.pause();
-    handCenter.x = null;
-    handCenter.y = null;
-    statusEl.textContent = "Kamera nonaktif — gunakan panel atau keys 1–5";
+    pendingState = newState;
+    pendingSince = performance.now();
   }
-});
+}
 
-// ============ Setup MediaPipe ============
+// ============================================================
+// MEDIAPIPE
+// ============================================================
 let handLandmarker = null;
 
 async function initMediaPipe() {
-  statusEl.textContent = "Memuat model MediaPipe…";
   const vision = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
   );
@@ -314,119 +594,58 @@ async function initMediaPipe() {
     baseOptions: {
       modelAssetPath:
         "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-      delegate: "GPU",
+      delegate: "GPU"
     },
     runningMode: "VIDEO",
-    numHands: 1,
+    numHands: 1
   });
 }
 
 async function initCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480 },
-      audio: false,
+      video: { width: 640, height: 480 }, audio: false
     });
     video.srcObject = stream;
     await video.play();
-    statusEl.textContent = "Kamera aktif — tunjukkan tangan Anda ✋";
   } catch (err) {
     console.error(err);
-    statusEl.textContent =
-      "Kamera tidak tersedia — gunakan panel atau keys 1–5";
-    cameraOn = false;
     cameraToggle.textContent = "Kamera: OFF";
     cameraToggle.classList.add("off");
   }
 }
 
-// ============ Deteksi loop ============
+cameraToggle.addEventListener("click", () => {
+  const off = cameraToggle.classList.toggle("off");
+  if (off) { video.pause(); cameraToggle.textContent = "Kamera: OFF"; }
+  else     { video.play().catch(() => {}); cameraToggle.textContent = "Kamera: ON"; }
+});
+
 let lastVideoTime = -1;
-
-function processHands(landmarksList) {
-  const hand = landmarksList[0];
-  const wrist = hand[0];
-
-  // Mirror horizontal (karena webcam menghadap pengguna)
-  const targetX = (1 - wrist.x) * W;
-  const targetY = wrist.y * H;
-
-  // Smoothing
-  handCenter.x = handCenter.x === null
-    ? targetX
-    : handCenter.x * 0.6 + targetX * 0.4;
-  handCenter.y = handCenter.y === null
-    ? targetY
-    : handCenter.y * 0.6 + targetY * 0.4;
-
-  const openness = getHandOpenness(hand);
-  currentOpenness = currentOpenness * 0.75 + openness * 0.25;
-
-  const spread = dist(hand[4], hand[20]);
-  const dispersion = clamp(spread * 2, 0, 1);
-  currentDispersion = currentDispersion * 0.75 + dispersion * 0.25;
-
-  // Pinch → ganti warna
-  const pinch = getPinchDistance(hand) < 0.06;
-  if (pinch && !lastPinchActive) {
-    const nextIndex = (colorPresets.findIndex((p) => p.hue === currentHue) + 1)
-      % colorPresets.length;
-    setHue(colorPresets[nextIndex].hue, nextIndex);
-  }
-  lastPinchActive = pinch;
-}
-
 function detectLoop() {
-  if (handLandmarker && video.readyState >= 2 && cameraOn) {
+  if (handLandmarker && video.readyState >= 2 && !video.paused) {
     const now = performance.now();
     if (video.currentTime !== lastVideoTime) {
       lastVideoTime = video.currentTime;
       const results = handLandmarker.detectForVideo(video, now);
       if (results.landmarks && results.landmarks.length > 0) {
-        processHands(results.landmarks);
-      } else {
-        // Tidak ada tangan → partikel kembali mengumpul perlahan
-        currentOpenness += (0.5 - currentOpenness) * 0.02;
-        currentDispersion += (0.3 - currentDispersion) * 0.02;
-        handCenter.x = null;
-        handCenter.y = null;
+        requestStateChange(detectGesture(results.landmarks[0]));
       }
     }
   }
   requestAnimationFrame(detectLoop);
 }
 
-// ============ Render loop ============
-function renderLoop() {
-  ctx.globalCompositeOperation = "source-over";
-  ctx.fillStyle = "rgba(10, 10, 20, 0.18)";
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.globalCompositeOperation = "lighter";
-  for (const p of particles) {
-    const size = p.update(
-      currentOpenness,
-      currentDispersion,
-      handCenter.x,
-      handCenter.y,
-      currentHue
-    );
-    p.draw(ctx, size);
-  }
-
-  requestAnimationFrame(renderLoop);
-}
-
-// ============ Start ============
+// ============================================================
+// START
+// ============================================================
 (async function start() {
-  renderLoop();
+  setState(STATE.SCATTER);
+  requestAnimationFrame(renderLoop);
   try {
     await initMediaPipe();
     await initCamera();
-  } catch (e) {
-    console.error(e);
-    statusEl.textContent = "Gagal memuat model — cek koneksi internet";
-  }
+  } catch (e) { console.error(e); }
   detectLoop();
 })();
 </script>
